@@ -1,0 +1,344 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Todo se transforma — Atril interactivo</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Caveat:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  :root{
+    --negro:#111110;
+    --blanco:#FAF9F5;
+    --gris:#6B6A64;
+    --gris-claro:#E4E2D9;
+    /* colores de acento por verso */
+    --naranja:#D85A30;
+    --amarillo:#EF9F27;
+    --azul:#185FA5;
+    --verde:#639922;
+    --rosa:#D4537E;
+  }
+  *{margin:0;padding:0;box-sizing:border-box;}
+  html,body{height:100%;}
+  body{
+    font-family:'Space Grotesk',sans-serif;
+    background:var(--blanco);
+    color:var(--negro);
+    overflow:hidden;
+    -webkit-font-smoothing:antialiased;
+  }
+  .sr-only{position:absolute;width:1px;height:1px;overflow:hidden;clip:rect(0,0,0,0);}
+
+  /* textura papel sutil */
+  body::before{
+    content:"";position:fixed;inset:0;pointer-events:none;z-index:0;
+    opacity:.035;
+    background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  .stage{
+    position:relative;z-index:1;
+    height:100vh;width:100vw;
+    display:flex;align-items:stretch;
+    transition:none;
+  }
+
+  /* ---- columna letra ---- */
+  .lyrics{
+    flex:1 1 100%;
+    display:flex;flex-direction:column;justify-content:center;
+    padding:clamp(2rem,6vw,7rem);
+    transition:flex-basis .7s cubic-bezier(.65,0,.35,1), padding .7s cubic-bezier(.65,0,.35,1);
+    overflow-y:auto;
+  }
+  .stage.open .lyrics{
+    flex-basis:42%;
+    padding-left:clamp(2rem,4vw,4rem);
+    padding-right:clamp(1.5rem,2.5vw,2.5rem);
+  }
+  .eyebrow{
+    font-size:13px;letter-spacing:.28em;text-transform:uppercase;
+    color:var(--gris);font-weight:500;margin-bottom:.4rem;
+  }
+  .song-title{
+    font-family:'Caveat',cursive;
+    font-size:clamp(2.6rem,5vw,4.4rem);
+    line-height:.95;font-weight:600;margin-bottom:.3rem;
+  }
+  .song-sub{font-size:14px;color:var(--gris);margin-bottom:clamp(1.5rem,3vw,2.5rem);}
+  .lyric-body{
+    font-size:clamp(1rem,1.45vw,1.35rem);
+    line-height:2.05;
+    max-width:46ch;
+  }
+  .stage.open .lyric-body{font-size:clamp(.95rem,1.1vw,1.1rem);line-height:1.95;}
+  .line{display:block;color:var(--negro);}
+  .verse-gap{height:1.1rem;}
+
+  /* versos clicables */
+  .v{
+    cursor:pointer;border:none;background:none;font:inherit;color:inherit;
+    text-align:left;padding:.05em .18em;margin:-.05em -.18em;
+    border-radius:4px;position:relative;display:inline;
+    transition:background .25s ease,color .25s ease;
+    -webkit-tap-highlight-color:transparent;
+  }
+  .v::after{
+    content:"";position:absolute;left:.18em;right:.18em;bottom:.02em;
+    height:2px;background:currentColor;opacity:.35;
+    transform:scaleX(1);transform-origin:left;
+  }
+  .v:hover,.v:focus-visible{outline:none;}
+  .v[data-c="naranja"]{color:var(--naranja);}
+  .v[data-c="amarillo"]{color:var(--amarillo);}
+  .v[data-c="azul"]{color:var(--azul);}
+  .v[data-c="verde"]{color:var(--verde);}
+  .v[data-c="rosa"]{color:var(--rosa);}
+  .v:hover,.v:focus-visible{background:currentColor;}
+  .v:hover .vt,.v:focus-visible .vt{color:var(--blanco);}
+  .vt{transition:color .25s ease;}
+  .v.active{background:currentColor;}
+  .v.active .vt{color:var(--blanco);}
+  .v .num{
+    font-size:.62em;vertical-align:.55em;font-weight:600;
+    opacity:.7;margin-right:.15em;letter-spacing:0;
+  }
+
+  /* ---- panel ficha ---- */
+  .panel{
+    flex:0 0 0;width:0;overflow:hidden;
+    background:var(--negro);color:var(--blanco);
+    transition:flex-basis .7s cubic-bezier(.65,0,.35,1),width .7s cubic-bezier(.65,0,.35,1);
+    display:flex;flex-direction:column;
+  }
+  .stage.open .panel{flex-basis:58%;width:58%;}
+  .panel-inner{
+    height:100%;overflow-y:auto;
+    padding:clamp(2rem,4vw,4.5rem) clamp(2rem,4vw,4.5rem);
+    opacity:0;transform:translateX(28px);
+    transition:opacity .5s ease .25s,transform .55s cubic-bezier(.2,.7,.3,1) .25s;
+  }
+  .stage.open .panel-inner{opacity:1;transform:none;}
+
+  .accent-bar{height:5px;width:64px;border-radius:0;margin-bottom:1.6rem;}
+  .ficha-tag{
+    font-size:12px;letter-spacing:.26em;text-transform:uppercase;
+    color:rgba(250,249,245,.55);font-weight:500;margin-bottom:.7rem;
+  }
+  .transform-label{
+    font-size:clamp(1.5rem,2.6vw,2.3rem);font-weight:600;line-height:1.1;
+    margin-bottom:.4rem;
+  }
+  .verse-quote{
+    font-family:'Caveat',cursive;font-size:clamp(1.4rem,2.4vw,2rem);
+    line-height:1.2;color:rgba(250,249,245,.85);margin-bottom:1.8rem;
+  }
+  /* "imagen": placeholder de ilustración */
+  .figure{
+    width:100%;aspect-ratio:16/8;border-radius:0;
+    border:1.5px dashed rgba(250,249,245,.28);
+    display:flex;align-items:center;justify-content:center;
+    margin-bottom:1.8rem;position:relative;
+    background:rgba(250,249,245,.03);
+  }
+  .figure svg{width:min(70%,360px);height:auto;}
+  .figure .ph{
+    position:absolute;bottom:10px;right:14px;font-size:11px;
+    letter-spacing:.1em;text-transform:uppercase;color:rgba(250,249,245,.4);
+  }
+  .explain{font-size:clamp(.95rem,1.15vw,1.12rem);line-height:1.75;color:rgba(250,249,245,.9);margin-bottom:1.4rem;max-width:54ch;}
+  .principle{
+    border-top:1px solid rgba(250,249,245,.18);
+    padding-top:1.1rem;margin-bottom:1.6rem;max-width:54ch;
+  }
+  .principle .k{font-size:12px;letter-spacing:.2em;text-transform:uppercase;color:rgba(250,249,245,.5);display:block;margin-bottom:.35rem;}
+  .principle .v2{font-size:clamp(.92rem,1.1vw,1.05rem);line-height:1.65;color:rgba(250,249,245,.92);}
+
+  .controls{display:flex;align-items:center;gap:14px;flex-wrap:wrap;}
+  .audio-btn{
+    display:inline-flex;align-items:center;gap:10px;
+    background:var(--blanco);color:var(--negro);border:none;
+    font:inherit;font-weight:500;font-size:15px;
+    padding:.7rem 1.3rem;border-radius:0;cursor:pointer;
+    transition:transform .15s ease,opacity .2s ease;
+  }
+  .audio-btn:hover{transform:translateY(-1px);}
+  .audio-btn:active{transform:translateY(0) scale(.98);}
+  .audio-note{font-size:12px;color:rgba(250,249,245,.45);}
+
+  .close-btn{
+    position:absolute;top:clamp(1.2rem,2.5vw,2rem);right:clamp(1.2rem,2.5vw,2rem);
+    width:46px;height:46px;border-radius:50%;
+    border:1px solid rgba(250,249,245,.35);background:none;color:var(--blanco);
+    font-size:22px;cursor:pointer;line-height:1;z-index:5;
+    display:flex;align-items:center;justify-content:center;
+    transition:background .2s ease;
+  }
+  .close-btn:hover{background:rgba(250,249,245,.12);}
+
+  /* hint inicial */
+  .hint{
+    position:fixed;bottom:clamp(1.5rem,4vh,3rem);left:50%;transform:translateX(-50%);
+    font-size:13px;color:var(--gris);letter-spacing:.04em;z-index:3;
+    background:var(--blanco);padding:.5rem 1.2rem;border:1px solid var(--gris-claro);
+    border-radius:999px;transition:opacity .4s ease;
+  }
+  .stage.open ~ .hint{opacity:0;}
+
+  @media (max-width:760px){
+    .stage{flex-direction:column;}
+    .stage.open .lyrics{flex-basis:auto;height:38%;}
+    .stage.open .panel{flex-basis:auto;width:100%;height:62%;}
+  }
+  @media (prefers-reduced-motion:reduce){
+    *{transition-duration:.01ms !important;}
+  }
+</style>
+</head>
+<body>
+<h1 class="sr-only">Atril interactivo de la subsala Todo se transforma: la letra de la canción de Jorge Drexler con cinco versos que explican una transformación científica al pulsarlos.</h1>
+
+<div class="stage" id="stage">
+  <section class="lyrics" aria-label="Letra de Todo se transforma">
+    <div class="eyebrow">La ciencia que canta Drexler</div>
+    <div class="song-title">Todo se transforma</div>
+    <div class="song-sub">Jorge Drexler · Eco (2004) · pulsa un verso resaltado</div>
+
+    <div class="lyric-body">
+      <button class="v" data-id="1" data-c="naranja">
+        <span class="num">01</span><span class="vt">Tu beso se hizo calor,</span>
+      </button>
+      <button class="v" data-id="2" data-c="amarillo">
+        <span class="vt">luego el calor, movimiento</span><br>
+        <span class="vt">luego gota de sudor que se hizo vapor, luego viento</span>
+      </button>
+      <button class="v" data-id="3" data-c="azul">
+        <span class="num">03</span><span class="vt">que en un rincón de La Rioja, movió el aspa de un molino</span>
+      </button>
+      <button class="v" data-id="4" data-c="verde">
+        <span class="num">04</span><span class="vt">mientras se pisaba el vino que bebió tu boca roja</span>
+      </button>
+      <span class="line">Tu boca roja en la mía, la copa que gira en mi mano</span>
+      <span class="line">y mientras el vino caía, supe que de algún lejano</span>
+      <span class="line">rincón de otra galaxia, el amor que me darías</span>
+      <span class="line">transformado, volvería un día a darte las gracias</span>
+
+      <div class="verse-gap"></div>
+
+      <button class="v" data-id="5" data-c="rosa">
+        <span class="num">05</span><span class="vt">Nada se pierde, todo se transforma</span>
+      </button>
+      <span class="line">Cada uno da lo que recibe</span>
+      <span class="line">y luego recibe lo que da</span>
+      <span class="line">nada es más simple, no hay otra norma</span>
+    </div>
+  </section>
+
+  <aside class="panel" id="panel" aria-live="polite">
+    <button class="close-btn" id="closeBtn" aria-label="Cerrar explicación">&times;</button>
+    <div class="panel-inner" id="panelInner"></div>
+  </aside>
+</div>
+
+<div class="hint" id="hint">Pulsa un verso resaltado para descubrir la ciencia</div>
+
+<script>
+const DATA = {
+  "1":{
+    color:"var(--naranja)", tag:"Transformación 01 · energía química → térmica",
+    label:"De química a calor",
+    quote:"\u201CTu beso se hizo calor\u201D",
+    fig:"flame",
+    explain:"Un beso es, en el fondo, energía química. Las células del cuerpo guardan energía en los enlaces de las moléculas que comemos, y al activarse la liberan. Parte de esa energía se disipa siempre como calor: por eso la piel se enciende. El primer eslabón de la canción es una reacción exotérmica disfrazada de emoción.",
+    pk:"Principio", pv:"En toda reacción química se libera o absorbe energía. Cuando se libera en forma de calor, se llama exotérmica \u2014 como la combustión, la respiración celular o, aquí, el roce de la piel."
+  },
+  "2":{
+    color:"var(--amarillo)", tag:"Transformación 02 · energía térmica → cinética",
+    label:"Del calor al movimiento",
+    quote:"\u201CLuego el calor, movimiento\u2026 vapor, luego viento\u201D",
+    fig:"wind",
+    explain:"El calor no se queda quieto: pone materia en movimiento. El sudor se calienta, cambia de estado y se vuelve vapor; el aire caliente asciende y, al desplazarse, genera viento. La energía térmica se ha convertido en energía cinética \u2014 la energía del movimiento. Es, a pequeña escala, el mismo motor que mueve el clima del planeta.",
+    pk:"Principio", pv:"El calor tiende a repartirse y, al hacerlo, mueve las cosas. Los cambios de estado (l\u00edquido \u2192 vapor) y las diferencias de temperatura en el aire son el origen del viento."
+  },
+  "3":{
+    color:"var(--azul)", tag:"Transformación 03 · energía cinética → mecánica",
+    label:"Del viento al trabajo",
+    quote:"\u201CMovió el aspa de un molino\u201D",
+    fig:"mill",
+    explain:"El viento empuja las aspas y el molino gira: el movimiento del aire se convierte en trabajo mecánico aprovechable. Es el mismo principio de un aerogenerador moderno. La energía no aparece de la nada \u2014 venía del beso, del calor, del vapor \u2014 solo ha cambiado de forma una vez más.",
+    pk:"Principio", pv:"Cuando una fuerza desplaza un objeto, realiza trabajo. El molino captura la energía cin\u00e9tica del viento y la transforma en movimiento \u00fatil: moler, bombear, generar."
+  },
+  "4":{
+    color:"var(--verde)", tag:"Transformación 04 · conservación de la materia",
+    label:"La materia también se transforma",
+    quote:"\u201CSe pisaba el vino que bebió tu boca roja\u201D",
+    fig:"matter",
+    explain:"Aquí la canción da un salto sutil: ya no habla solo de energía, sino de materia. Pisar la uva y dejarla fermentar convierte el azúcar en alcohol \u2014 los mismos átomos, reordenados. Y al beberlo, el cuerpo lo vuelve a transformar. Lavoisier descubrió que en estos cambios nada de la materia se pierde: solo se recombina.",
+    pk:"Ley de Lavoisier", pv:"En una reacción qu\u00edmica, la masa total se conserva: la materia no se crea ni se destruye, solo se transforma. La canci\u00f3n no habla solo de energía \u2014 mezcla las dos conservaciones."
+  },
+  "5":{
+    color:"var(--rosa)", tag:"Principio · conservación",
+    label:"Nada se pierde",
+    quote:"\u201CNada se pierde, todo se transforma\u201D",
+    fig:"cycle",
+    explain:"Este verso es el estribillo y el corazón científico de la canción. Resume dos de las leyes más profundas de la física y la química: la energía y la materia no desaparecen, solo cambian de forma. El beso volvió a ser calor, viento, vino y, al final, gratitud. El recorrido de esta sala es circular por la misma razón: vuelves al principio, como la energía.",
+    pk:"De Lavoisier a la termodinámica", pv:"Conservaci\u00f3n de la materia (Lavoisier, 1789) y conservaci\u00f3n de la energía (primer principio de la termodin\u00e1mica): dos pilares que la canci\u00f3n condensa en seis palabras."
+  }
+};
+
+const FIGS = {
+  flame:'<svg viewBox="0 0 120 120" fill="none" stroke="var(--naranja)" stroke-width="3"><path d="M60 20 C50 40 35 48 42 72 C46 88 58 96 60 100 C62 96 74 88 78 72 C85 48 70 40 60 20Z"/><path d="M60 55 C55 65 50 70 54 82 C57 90 60 92 60 94 C60 92 63 90 66 82 C70 70 65 65 60 55Z" stroke-opacity=".5"/></svg>',
+  wind:'<svg viewBox="0 0 120 120" fill="none" stroke="var(--amarillo)" stroke-width="3" stroke-linecap="round"><path d="M20 45 H80 C92 45 92 30 82 30 C74 30 74 40 80 40"/><path d="M20 60 H94 C106 60 106 75 96 75 C88 75 88 65 94 65"/><path d="M20 75 H62 C72 75 72 88 64 88 C58 88 58 80 62 80"/></svg>',
+  mill:'<svg viewBox="0 0 120 120" fill="none" stroke="var(--azul)" stroke-width="3" stroke-linecap="round" stroke-linejoin="round"><line x1="60" y1="60" x2="60" y2="105"/><g transform="rotate(15 60 55)"><line x1="60" y1="55" x2="60" y2="18"/><line x1="60" y1="55" x2="92" y2="73"/><line x1="60" y1="55" x2="28" y2="73"/></g><circle cx="60" cy="55" r="5" fill="var(--azul)" stroke="none"/></svg>',
+  matter:'<svg viewBox="0 0 120 120" fill="none" stroke="var(--verde)" stroke-width="3"><circle cx="42" cy="48" r="11"/><circle cx="72" cy="42" r="11"/><circle cx="58" cy="74" r="11"/><line x1="51" y1="52" x2="63" y2="49" stroke-opacity=".6"/><line x1="68" y1="52" x2="61" y2="65" stroke-opacity=".6"/><line x1="50" y1="62" x2="49" y2="56" stroke-opacity=".6"/></svg>',
+  cycle:'<svg viewBox="0 0 120 120" fill="none" stroke="var(--rosa)" stroke-width="3" stroke-linecap="round"><path d="M88 45 A35 35 0 1 0 92 70"/><path d="M78 30 L90 44 L74 50"/></svg>'
+};
+
+const stage=document.getElementById('stage');
+const panelInner=document.getElementById('panelInner');
+const closeBtn=document.getElementById('closeBtn');
+const verses=document.querySelectorAll('.v');
+let current=null;
+
+function openVerse(id,btn){
+  const d=DATA[id];
+  panelInner.innerHTML=`
+    <div class="accent-bar" style="background:${d.color}"></div>
+    <div class="ficha-tag">${d.tag}</div>
+    <div class="transform-label">${d.label}</div>
+    <div class="verse-quote">${d.quote}</div>
+    <div class="figure">${FIGS[d.fig]}<span class="ph">Ilustración · ${d.fig}</span></div>
+    <p class="explain">${d.explain}</p>
+    <div class="principle">
+      <span class="k">${d.pk}</span>
+      <span class="v2">${d.pv}</span>
+    </div>
+    <div class="controls">
+      <button class="audio-btn" onclick="this.querySelector('span').textContent='Reproduciendo…'">
+        <span>▶ Escuchar este verso</span>
+      </button>
+      <span class="audio-note">Voz a capela · solo este fragmento</span>
+    </div>`;
+  stage.classList.add('open');
+  verses.forEach(v=>v.classList.remove('active'));
+  btn.classList.add('active');
+  current=id;
+}
+function close(){
+  stage.classList.remove('open');
+  verses.forEach(v=>v.classList.remove('active'));
+  current=null;
+}
+verses.forEach(btn=>{
+  btn.addEventListener('click',()=>{
+    const id=btn.dataset.id;
+    if(current===id){close();}else{openVerse(id,btn);}
+  });
+});
+closeBtn.addEventListener('click',close);
+document.addEventListener('keydown',e=>{if(e.key==='Escape')close();});
+</script>
+</body>
+</html>

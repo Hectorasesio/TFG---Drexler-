@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Todo se transforma — Atril interactivo</title>
+
+  <!-- Fuentes: Space Grotesk (funcional) + Caveat (lettering manuscrito) -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@300;400;500;600;700&family=Beth+Ellen&display=swap" rel="stylesheet">
+
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+<!-- Texto oculto para lectores de pantalla: describe el propósito de la pieza -->
+<h1 class="sr-only">Atril interactivo de la subsala Todo se transforma: la letra de la canción de Jorge Drexler con cinco versos que explican una transformación científica al pulsarlos.</h1>
+
+<!-- ================================================================
+     PANTALLA DE INICIO
+     Se muestra al cargar la página. Al pulsarla desaparece con
+     una transición de opacidad (gestionada en script.js).
+     tabindex="0" permite acceder por teclado.
+     ================================================================ -->
+<div class="intro" id="intro" role="button" tabindex="0" aria-label="Abrir la canción Todo se transforma">
+
+  <p class="intro-eyebrow">La ciencia que canta Drexler</p>
+
+  <!-- Vídeo con la animación del título (sustituye a la animación CSS) -->
+  <video class="intro-video" id="introVideo" autoplay muted playsinline>
+    <source src="video/Todosetransforma-animacion.mp4" type="video/mp4">
+  </video>
+
+  <p class="intro-cta">Abre la canción</p>
+</div>
+
+<!-- ================================================================
+     CONTENEDOR PRINCIPAL
+     Flex horizontal: columna de letra (izquierda) + panel de ficha (derecha).
+     La clase .open la añade JS cuando se pulsa un verso.
+     ================================================================ -->
+<div class="stage" id="stage">
+
+  <!-- Columna izquierda: letra de la canción -->
+  <section class="lyrics" aria-label="Letra de Todo se transforma">
+    <div class="eyebrow">La ciencia que canta Drexler</div>
+    <img class="song-title" src="img/TSTtitulo.svg" alt="Todo se transforma">
+    <div class="song-sub">Jorge Drexler · Eco (2004) · pulsa un verso resaltado</div>
+
+    <div class="lyric-body">
+      <!-- Los versos científicos (resaltados con color) son <button class="v"> con data-id 1–7.
+           El resto de la letra va en <span class="line">, en blanco tenue.
+           Los botones siguen el orden temático de DATA, no el orden de la canción:
+           05 y 07 son "rosa", 06 es "azul-claro". Las repeticiones del estribillo
+           son líneas normales para no saturar la interacción. -->
+
+      <!-- ── Verso 1: cadena de transformaciones energéticas ── -->
+      <button class="v" data-id="1" data-c="naranja" aria-label="Verso 1: energía química a calor. Pulsa para abrir la ficha.">
+        <span class="num">01</span><span class="vt">Tu beso se hizo calor,</span>
+      </button>
+      <button class="v" data-id="2" data-c="amarillo" aria-label="Verso 2: del calor al movimiento. Pulsa para abrir la ficha.">
+        <span class="vt">luego el calor, movimiento,</span><br>
+        <span class="vt">luego gota de sudor que se hizo vapor, luego viento,</span>
+      </button>
+      <button class="v" data-id="3" data-c="azul" aria-label="Verso 3: del viento al trabajo mecánico. Pulsa para abrir la ficha.">
+        <span class="num">03</span><span class="vt">que en un rincón de La Rioja, movió el aspa de un molino,</span>
+      </button>
+      <button class="v" data-id="4" data-c="verde" aria-label="Verso 4: conservación de la materia. Pulsa para abrir la ficha.">
+        <span class="num">04</span><span class="vt">mientras se pisaba el vino que bebió tu boca roja.</span>
+      </button>
+      <span class="line">Tu boca roja en la mía, la copa que gira en mi mano,</span>
+      <span class="line">y mientras el vino caía, supe que de algún lejano rincón</span>
+      <span class="line">de otra galaxia, el amor que me darías,</span>
+      <span class="line">transformado, volvería un día a darte las gracias.</span>
+
+      <div class="verse-gap"></div>
+
+      <!-- ── Estribillo (primera vez — sin botón, el 07 se activa en la segunda) ── -->
+      <span class="line">Cada uno da lo que recibe</span>
+      <span class="line">y luego recibe lo que da,</span>
+      <span class="line">nada es más simple, no hay otra norma,</span>
+      <span class="line">nada se pierde, todo se transforma.</span>
+
+      <div class="verse-gap"></div>
+
+      <!-- ── Verso 2: la cadena de objetos que circulan de mano en mano ── -->
+      <!-- VERSO 6: conservación en sistemas abiertos — azul-claro -->
+      <button class="v" data-id="6" data-c="azul-claro" aria-label="Verso 6: conservación en sistemas abiertos. Pulsa para abrir la ficha.">
+        <span class="num">06</span><span class="vt">El vino que pagué yo con aquel euro italiano,</span><br>
+        <span class="vt">que había estado en un vagón, antes de estar en mi mano,</span><br>
+        <span class="vt">y antes de eso en Torino, y antes de Torino, en Prato,</span>
+      </button>
+      <span class="line">donde hicieron mi zapato sobre el que caería el vino.</span>
+      <span class="line">Zapato que en unas horas buscaré bajo tu cama</span>
+      <span class="line">con las luces de la aurora junto a tus sandalias planas,</span>
+      <span class="line">que compraste aquella vez, en Salvador de Bahía,</span>
+      <span class="line">donde a otro diste el amor que hoy yo te devolvería.</span>
+
+      <div class="verse-gap"></div>
+
+      <!-- ── Estribillo (segunda aparición — botón 07 activo aquí) ── -->
+      <span class="line">Cada uno da lo que recibe</span>
+      <span class="line">y luego recibe lo que da,</span>
+      <!-- VERSO 7: los dos principios de conservación — incluye las dos últimas líneas del estribillo -->
+      <button class="v" data-id="7" data-c="rosa" aria-label="Verso 7: los dos principios de conservación. Pulsa para abrir la ficha.">
+        <span class="vt">nada es más simple, no hay otra norma,</span><br>
+        <span class="num">07</span><span class="vt">nada se pierde, todo se transforma.</span>
+      </button>
+      <span class="line">Todo se transforma.</span>
+      <span class="line">Todo se transforma.</span>
+
+      <div class="verse-gap"></div>
+
+      <!-- ── Puente ── -->
+      <span class="line">Supe que</span>
+      <!-- VERSO 5: origen estelar de la materia — segunda y definitiva aparición (Puente) -->
+      <button class="v" data-id="5" data-c="rosa" aria-label="Verso 5: origen estelar de la materia. Pulsa para abrir la ficha.">
+        <span class="num">05</span><span class="vt">de algún lejano rincón de otra galaxia,</span><br>
+        <span class="vt">el amor que me darías, transformado, volvería</span>
+      </button>
+      <span class="line">un día a darte las gracias.</span>
+
+      <div class="verse-gap"></div>
+
+      <!-- ── Estribillo final ── -->
+      <span class="line">Porque cada uno da lo que recibe</span>
+      <span class="line">y luego recibe lo que da,</span>
+      <span class="line">nada es más simple, no hay otra norma,</span>
+      <span class="line">nada se pierde, todo se transforma.</span>
+
+      <div class="verse-gap"></div>
+
+      <!-- ── Outro ── -->
+      <span class="line">Nada se pierde, todo se transforma.</span>
+      <span class="line">Nada se pierde, todo se transforma.</span>
+      <span class="line">Todo se transforma.</span>
+      <span class="line">Todo se transforma.</span>
+      <span class="line">Todo se transforma.</span>
+      <span class="line">Todo se transforma.</span>
+    </div>
+  </section>
+
+  <!-- Columna derecha: panel de la ficha científica.
+       Empieza oculto (width 0 en CSS); JS le añade .open al stage. -->
+  <aside class="panel" id="panel" aria-live="polite" aria-label="Ficha científica del verso seleccionado">
+    <button class="close-btn" id="closeBtn" aria-label="Cerrar explicación">&times;</button>
+    <!-- El contenido de la ficha se inyecta aquí dinámicamente desde script.js -->
+    <div class="panel-inner" id="panelInner"></div>
+  </aside>
+
+</div><!-- /.stage -->
+
+<!-- Pista flotante visible solo antes de abrir el primer verso -->
+<div class="hint" id="hint" aria-hidden="true">Pulsa un verso resaltado para descubrir la ciencia</div>
+
+<!--
+  IMÁGENES PENDIENTES — carpeta img/
+  Las fichas 03, 04 y 05 usan fotografía de archivo (media.type="photo").
+  Descarga imágenes libres de derechos y guárdalas con estos nombres exactos:
+    · img/molino.jpg   → molino de viento o aerogenerador en paisaje abierto
+    · img/vino.jpg     → pisado de uva / vendimia (Unsplash, Pexels, Wikimedia)
+    · img/galaxia.jpg  → galaxia o nebulosa NASA (dominio público: images.nasa.gov)
+  Mientras no existan, el código muestra un placeholder con el texto alt.
+-->
+<script src="script.js"></script>
+</body>
+</html>

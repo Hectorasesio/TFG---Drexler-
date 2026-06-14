@@ -1,0 +1,539 @@
+/* ============================================================
+   ATRIL INTERACTIVO — "Todo se transforma" · Jorge Drexler
+   Grado en Diseño Multimedia y Gráfico · UDIT · TFG 2025-26
+   Autor: Héctor Asesio González
+   ============================================================ */
+
+/* ---- Variables globales de color y tipografía ---- */
+:root {
+  --negro:      #111110;
+  --blanco:     #FAF9F5;
+  --gris:       #6B6A64;
+  --gris-claro: #E4E2D9;
+
+  /* Un color de acento por verso científico */
+  --naranja:    #D85A30;
+  --amarillo:   #EF9F27;
+  --azul:       #185FA5;
+  --verde:      #639922;
+  --rosa:       #D4537E;
+  --azul-claro: #85B7EB;   /* verso 06 · conservación en sistemas abiertos */
+}
+
+/* ---- Reset mínimo ---- */
+*, *::before, *::after {
+  margin: 0;
+  padding: 0;
+  box-sizing: border-box;
+}
+html, body { height: 100%; }
+
+body {
+  font-family: 'Space Grotesk', sans-serif;
+  background: var(--negro);
+  color: var(--blanco);
+  overflow: hidden;           /* el scroll lo gestiona cada columna por separado */
+  -webkit-font-smoothing: antialiased;
+}
+
+/* Clase utilitaria para texto solo legible por lectores de pantalla */
+.sr-only {
+  position: absolute;
+  width: 1px; height: 1px;
+  overflow: hidden;
+  clip: rect(0, 0, 0, 0);
+}
+
+/* ---- Textura de papel mediante ruido fractal SVG ---- */
+body::before {
+  content: "";
+  position: fixed; inset: 0;
+  pointer-events: none;
+  z-index: 0;
+  opacity: .035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='120' height='120'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* ================================================================
+   PANTALLA DE INICIO
+   Ocupa toda la ventana hasta que el usuario pulsa para entrar.
+   Se oculta con la clase .hidden que añade JS.
+   ================================================================ */
+.intro {
+  position: fixed; inset: 0;
+  z-index: 100;
+  background: #000;   /* negro puro para que el vídeo quede sin costuras */
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 0;
+  cursor: pointer;
+  transition: opacity .7s cubic-bezier(.65, 0, .35, 1);
+}
+.intro.hidden {
+  opacity: 0;
+  pointer-events: none;
+}
+
+/* Línea decorativa animada (guiño a Trim Paths de AE) */
+.intro-line {
+  width: min(520px, 80vw);
+  height: 2px;
+  overflow: visible;
+  margin-bottom: 3rem;
+}
+.intro-line line {
+  stroke: var(--gris);
+  stroke-width: 1.5;
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+  /* La animación se activa en cuanto carga la página */
+  animation: draw-line 1.4s cubic-bezier(.4, 0, .2, 1) .2s forwards;
+}
+@keyframes draw-line {
+  to { stroke-dashoffset: 0; }
+}
+
+/* Vídeo del título en la intro — ocupa la mayor parte de la pantalla */
+.intro-video {
+  width: min(820px, 88vw);
+  height: auto;
+  display: block;
+  margin-bottom: 1.2rem;
+  border-radius: 0;
+}
+
+/* Línea decorativa inferior */
+.intro-line-bottom {
+  width: min(520px, 80vw);
+  height: 2px;
+  overflow: visible;
+  margin-top: 2.4rem;
+  margin-bottom: 2.8rem;
+}
+.intro-line-bottom line {
+  stroke: var(--gris);
+  stroke-width: 1.5;
+  stroke-dasharray: 600;
+  stroke-dashoffset: 600;
+  /* Aparece cuando ya ha terminado de escribirse el título (≈3.4 s) */
+  animation: draw-line 1.4s cubic-bezier(.4, 0, .2, 1) 3.2s forwards;
+}
+
+/* Texto de invitación con pulso sutil */
+.intro-cta {
+  font-size: clamp(.85rem, 1.4vw, 1rem);
+  letter-spacing: .28em;
+  text-transform: uppercase;
+  color: rgba(250, 249, 245, .65);
+  font-weight: 500;
+  /* opacity inicial = 0.5 para coincidir con el primer fotograma del pulso (sin salto brusco) */
+  opacity: .5;
+  /* El pulso arranca cuando ya ha terminado de escribirse el título (≈4.0 s) */
+  animation: pulse-cta 2.2s ease-in-out 4.0s infinite;
+}
+@keyframes pulse-cta {
+  0%, 100% { opacity: .5; }
+  50%       { opacity: 1; }
+}
+
+/* Animación de escritura del título: cada <span> se revela de izquierda a derecha
+   mediante clip-path, imitando el gesto de una mano que escribe sobre papel.
+   El retraso individual se inyecta con la custom property --wd desde el HTML. */
+.write-line {
+  display: inline-block;
+  clip-path: inset(0 100% 0 0);   /* empieza completamente oculto */
+  animation: escribir 1.1s cubic-bezier(.4, 0, .2, 1) var(--wd, 0s) forwards;
+}
+@keyframes escribir {
+  to { clip-path: inset(0 0% 0 0); }   /* se revela por completo */
+}
+
+/* Eyebrow de la intro (atribución de la exposición) */
+.intro-eyebrow {
+  font-size: 11px;
+  letter-spacing: .3em;
+  text-transform: uppercase;
+  color: rgba(250, 249, 245, .35);
+  font-weight: 500;
+  margin-bottom: 1.4rem;
+}
+
+
+/* ================================================================
+   CONTENEDOR PRINCIPAL — el flex que divide letra y panel
+   ================================================================ */
+.stage {
+  position: relative;
+  z-index: 1;
+  height: 100vh; width: 100vw;
+  display: flex;
+  align-items: stretch;
+}
+
+/* ---- Columna de la letra ---- */
+.lyrics {
+  flex: 1 1 100%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;              /* centra el contenido horizontalmente */
+  justify-content: flex-start;      /* alineamos arriba para que el scroll funcione bien */
+  padding: clamp(2rem, 6vw, 7rem);
+  padding-top: clamp(2.5rem, 5vh, 4.5rem);
+  transition:
+    flex-basis .7s cubic-bezier(.65, 0, .35, 1),
+    padding    .7s cubic-bezier(.65, 0, .35, 1);
+  overflow-y: auto;
+  /* empieza invisible; JS añade .visible al stage cuando se cierra la intro */
+  opacity: 0;
+}
+/* Animación de entrada de la letra: sube suavemente desde abajo */
+.stage.visible .lyrics {
+  animation: entrada-letra .9s cubic-bezier(.4, 0, .2, 1) .15s both;
+}
+@keyframes entrada-letra {
+  from { opacity: 0; transform: translateY(18px); }
+  to   { opacity: 1; transform: none; }
+}
+.stage.open .lyrics {
+  flex-basis: 42%;
+  padding-left:  clamp(2rem, 4vw, 4rem);
+  padding-right: clamp(1.5rem, 2.5vw, 2.5rem);
+}
+
+/* Cabecera de la canción */
+.eyebrow {
+  font-size: 13px;
+  letter-spacing: .28em;
+  text-transform: uppercase;
+  color: rgba(250, 249, 245, .5);
+  font-weight: 500;
+  margin-bottom: .4rem;
+}
+.song-title {
+  display: block;
+  width: 100%;
+  max-width: 46ch;
+  height: auto;
+  margin-bottom: 1rem;
+}
+.song-sub {
+  font-size: 14px;
+  color: rgba(250, 249, 245, .45);
+  margin-bottom: clamp(2.8rem, 5vw, 4.5rem);
+}
+
+/* Cuerpo de la letra — tamaño fijo: no cambia al abrir el panel, solo se desplaza a la izquierda */
+.lyric-body {
+  font-size: clamp(.9rem, 1.25vw, 1.1rem);
+  line-height: 2.05;
+  max-width: 46ch;
+}
+
+/* Todas las líneas de la letra en blanco; los versos interactivos se distinguen por el subrayado */
+.line {
+  display: block;
+  color: var(--blanco);
+}
+
+/* Separador entre estrofas */
+.verse-gap { height: 1.1rem; }
+
+/* ---- Versos clicables ---- */
+/* Se usan <button> para garantizar accesibilidad por teclado.
+   El texto siempre en blanco; el color del verso solo aparece en el subrayado
+   y en el texto al pasar el ratón o cuando la ficha está abierta. */
+.v {
+  cursor: pointer;
+  border: none;
+  background: none;
+  font: inherit;
+  color: var(--blanco);       /* texto en blanco por defecto, igual que el resto de la letra */
+  text-align: left;
+  padding: .05em .18em;
+  margin: -.05em -.18em;
+  border-radius: 0;
+  position: relative;
+  display: inline;
+  transition: color .2s ease;
+  -webkit-tap-highlight-color: transparent;
+}
+
+/* Color de acento de cada verso: se usa en subrayado y en hover/activo */
+.v[data-c="naranja"]    { --v-color: var(--naranja); }
+.v[data-c="amarillo"]   { --v-color: var(--amarillo); }
+.v[data-c="azul"]       { --v-color: var(--azul); }
+.v[data-c="verde"]      { --v-color: var(--verde); }
+.v[data-c="rosa"]       { --v-color: var(--rosa); }
+.v[data-c="azul-claro"] { --v-color: var(--azul-claro); }
+
+/* Subrayado de color en cada span de texto: funciona en botones de varias líneas */
+.vt {
+  text-decoration: underline;
+  text-decoration-color: var(--v-color);
+  text-decoration-thickness: 2px;
+  text-underline-offset: .25em;
+  transition: color .2s ease, text-decoration-thickness .2s ease;
+}
+
+/* Hover y foco: el texto toma el color del verso */
+.v:hover, .v:focus-visible { outline: none; }
+.v:hover .vt, .v:focus-visible .vt { color: var(--v-color); text-decoration-thickness: 3px; }
+
+/* Estado activo (ficha abierta): texto con el color del verso */
+.v.active .vt { color: var(--v-color); text-decoration-thickness: 3px; }
+
+/* Número de verso en superíndice */
+.v .num {
+  font-size: .62em;
+  vertical-align: .55em;
+  font-weight: 600;
+  opacity: .7;
+  margin-right: .15em;
+  letter-spacing: 0;
+}
+
+/* ---- Animación de escritura al hacer scroll ----
+   JS añade .anime-lista a .lyric-body al cerrar la intro.
+   Cada .line y .v empieza oculto (clip-path 100% desde la derecha).
+   IntersectionObserver añade .reveal cuando entra en el scroll;
+   la animación lo "escribe" de izquierda a derecha. */
+.anime-lista .line,
+.anime-lista .v {
+  clip-path: inset(0 100% 0 0);
+}
+.anime-lista .line.reveal,
+.anime-lista .v.reveal {
+  animation: escribir-verso .55s cubic-bezier(.25, 0, .1, 1) forwards;
+}
+@keyframes escribir-verso {
+  to { clip-path: inset(0 0% 0 0); }
+}
+
+
+/* ================================================================
+   PANEL DE LA FICHA (columna derecha)
+   Empieza con width 0 y se expande cuando el stage tiene .open
+   ================================================================ */
+.panel {
+  flex: 0 0 0;
+  width: 0;
+  overflow: hidden;
+  /* sin background propio: hereda el negro+textura del body, igual que la columna de letra */
+  transition:
+    flex-basis .7s cubic-bezier(.65, 0, .35, 1),
+    width      .7s cubic-bezier(.65, 0, .35, 1);
+  display: flex;
+  flex-direction: column;
+}
+.stage.open .panel { flex-basis: 58%; width: 58%; }
+
+/* Contenido interior: fade-in con retraso respecto al deslizamiento.
+   El borde izquierdo usa --fiche-color (inyectado desde JS) como único
+   separador visual: mismo fondo que la letra, pero marcado con el color del verso. */
+.panel-inner {
+  height: 100%;
+  overflow-y: auto;
+  padding: clamp(2rem, 4vw, 4.5rem);
+  opacity: 0;
+  border-left: 3px solid var(--fiche-color, transparent);
+  transition: opacity .5s ease .25s;
+}
+.stage.open .panel-inner { opacity: 1; }
+
+/* La barra de acento se sustituye por el border-left de color en .panel-inner */
+.accent-bar { display: none; }
+.ficha-tag {
+  font-size: 12px;
+  letter-spacing: .26em;
+  text-transform: uppercase;
+  color: rgba(250, 249, 245, .55);
+  font-weight: 500;
+  margin-bottom: .7rem;
+}
+.transform-label {
+  font-size: clamp(1.5rem, 2.6vw, 2.3rem);
+  font-weight: 600;
+  line-height: 1.1;
+  margin-bottom: .4rem;
+}
+/* La cita va en manuscrito: tensión "mano vs. método científico" */
+.verse-quote {
+  font-family: 'Beth Ellen', cursive;
+  font-size: clamp(1.4rem, 2.4vw, 2rem);
+  line-height: 1.2;
+  color: rgba(250, 249, 245, .85);
+  margin-bottom: 1.8rem;
+}
+
+/* Ilustración / fotografía de la ficha.
+   El borde usa el color del verso (heredado de --fiche-color en .panel-inner)
+   para que todo el panel responda al mismo acento cromático. */
+.figure {
+  width: 100%;
+  aspect-ratio: 16 / 8;
+  border-radius: 0;
+  border: 1px solid var(--fiche-color, rgba(250, 249, 245, .18));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin-bottom: 1.8rem;
+  position: relative;
+  background: rgba(250, 249, 245, .03);
+}
+.figure svg   { width: min(70%, 360px); height: auto; }
+.figure .ph {
+  position: absolute;
+  bottom: 10px; right: 14px;
+  font-size: 11px;
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: rgba(250, 249, 245, .4);
+}
+
+/* ---- Fichas con fotografía (media.type = "photo") ---- */
+
+/* La imagen empieza oculta; cuando carga bien, JS añade .loaded al
+   padre (.figure--photo) y el CSS conmuta: muestra foto, oculta placeholder. */
+.figure-img {
+  width: 100%; height: 100%;
+  object-fit: cover;
+  display: none;         /* oculta por defecto hasta confirmar carga */
+  position: absolute;
+  inset: 0;
+}
+.figure--photo.loaded .figure-img      { display: block; }
+.figure--photo.loaded .figure-placeholder { display: none; }
+
+/* Mientras la foto no carga (o no existe), se muestra el placeholder.
+   Hereda el borde discontinuo de .figure: mismo aspecto que las figuras SVG. */
+.figure-placeholder {
+  position: absolute; inset: 0;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+}
+.figure-placeholder__text {
+  font-size: 12px;
+  letter-spacing: .08em;
+  color: rgba(250, 249, 245, .35);
+  text-align: center;
+  max-width: 75%;
+  line-height: 1.6;
+}
+
+/* Párrafo de explicación científica */
+.explain {
+  font-size: clamp(.95rem, 1.15vw, 1.12rem);
+  line-height: 1.75;
+  color: rgba(250, 249, 245, .9);
+  margin-bottom: 1.4rem;
+  max-width: 54ch;
+}
+
+/* Bloque del principio científico: el borde superior usa el color del verso */
+.principle {
+  border-top: 1px solid var(--fiche-color, rgba(250, 249, 245, .18));
+  padding-top: 1.1rem;
+  margin-bottom: 1.6rem;
+  max-width: 54ch;
+}
+.principle .k {
+  font-size: 12px;
+  letter-spacing: .2em;
+  text-transform: uppercase;
+  color: rgba(250, 249, 245, .5);
+  display: block;
+  margin-bottom: .35rem;
+}
+.principle .v2 {
+  font-size: clamp(.92rem, 1.1vw, 1.05rem);
+  line-height: 1.65;
+  color: rgba(250, 249, 245, .92);
+}
+
+/* Controles del panel */
+.controls {
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  flex-wrap: wrap;
+}
+.audio-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  background: var(--blanco);
+  color: var(--negro);
+  border: none;
+  font: inherit;
+  font-weight: 500;
+  font-size: 15px;
+  padding: .7rem 1.3rem;
+  border-radius: 0;
+  cursor: pointer;
+  transition: transform .15s ease, opacity .2s ease;
+}
+.audio-btn:hover  { transform: translateY(-1px); }
+.audio-btn:active { transform: translateY(0) scale(.98); }
+.audio-note {
+  font-size: 12px;
+  color: rgba(250, 249, 245, .45);
+}
+
+/* Botón de cierre: circular (excepción explícita a la norma de esquinas rectas) */
+.close-btn {
+  position: absolute;
+  top:   clamp(1.2rem, 2.5vw, 2rem);
+  right: clamp(1.2rem, 2.5vw, 2rem);
+  width: 46px; height: 46px;
+  border-radius: 50%;
+  border: 1px solid rgba(250, 249, 245, .35);
+  background: none;
+  color: var(--blanco);
+  font-size: 22px;
+  cursor: pointer;
+  line-height: 1;
+  z-index: 5;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background .2s ease;
+}
+.close-btn:hover { background: rgba(250, 249, 245, .12); }
+
+/* Pista inicial flotante */
+.hint {
+  position: fixed;
+  bottom: clamp(1.5rem, 4vh, 3rem);
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 13px;
+  color: var(--gris);
+  letter-spacing: .04em;
+  z-index: 3;
+  background: var(--blanco);
+  padding: .5rem 1.2rem;
+  border: 1px solid var(--gris-claro);
+  border-radius: 999px;
+  transition: opacity .4s ease;
+}
+.stage.open ~ .hint { opacity: 0; }
+
+
+/* ================================================================
+   RESPONSIVE — pantallas pequeñas (móvil / tablet portrait)
+   ================================================================ */
+@media (max-width: 760px) {
+  .stage { flex-direction: column; }
+  .stage.open .lyrics { flex-basis: auto; height: 38%; }
+  .stage.open .panel  { flex-basis: auto; width: 100%; height: 62%; }
+}
+
+/* Respeto a la preferencia de movimiento reducido del sistema */
+@media (prefers-reduced-motion: reduce) {
+  * { transition-duration: .01ms !important; animation-duration: .01ms !important; }
+}
